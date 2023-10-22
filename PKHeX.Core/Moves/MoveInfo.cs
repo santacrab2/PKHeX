@@ -191,4 +191,49 @@ public static class MoveInfo
         }
         return false;
     }
+    public static byte GetAccuracy(ushort move, EntityContext context) => context switch
+    {
+        Gen4 => GetAccuracy(move, MoveInfo4.MoveAccuracy_DP),
+        Gen7b => GetAccuracy(move, MoveInfo7b.MoveAccuracy_GG),
+        Gen8 or Gen8b => GetAccuracy(move, MoveInfo8.MoveAccuracy_SWSH),
+        Gen8a => GetAccuracy(move, MoveInfo8a.MoveAccuracy_LA),
+        _ => GetAccuracy(move, MoveInfo9.MoveAccuracy_SV),
+    };
+
+    private static byte GetAccuracy(ushort move, ReadOnlySpan<byte> accuracy)
+    {
+        if (move >= accuracy.Length)
+            return 0;
+        return accuracy[move];
+    }
+    public static byte GetCategory(ushort move, EntityContext context) => context switch
+    {
+        Gen4 => GetCategory(move, MoveInfo4.MoveCategory_DP),
+        Gen7b => GetCategory(move, MoveInfo7b.MoveCategory_GG),
+        Gen8 or Gen8b => GetCategory(move, MoveInfo8.MoveCategory_SWSH),
+        Gen8a => GetCategory(move, MoveInfo8a.MoveCategory_LA),
+        _ => GetCategory(move, MoveInfo9.MoveCategory_SV),
+    };
+
+    private static byte GetCategory(ushort move, ReadOnlySpan<byte> categories)
+    {
+        if (move >= categories.Length)
+            return 0;
+        return categories[move];
+    }
+    public static byte GetPower(ushort move, EntityContext context) => context switch
+    {
+        Gen4 => GetPower(move, MoveInfo4.MovePower_DP),
+        Gen7b => GetPower(move, MoveInfo7b.MovePower_GG),
+        Gen8 or Gen8b => GetPower(move, MoveInfo8.MovePower_SWSH),
+        Gen8a => GetPower(move, MoveInfo8a.MovePower_LA),
+        _ => GetPower(move, MoveInfo9.MovePower_SV),
+    };
+
+    private static byte GetPower(ushort move, ReadOnlySpan<byte> powers)
+    {
+        if (move >= powers.Length)
+            return 0;
+        return powers[move];
+    }
 }

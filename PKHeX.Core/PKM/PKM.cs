@@ -361,6 +361,10 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         set => SetIVs(value);
     }
 
+    /// <summary>
+    /// Retrieves the IVs of the PKM in the order HP, ATK, DEF, SPE, SPA, SPD
+    /// </summary>
+    /// <param name="value">Span of length 6 to write the IVs to</param>
     public void GetIVs(Span<int> value)
     {
         if (value.Length != 6)
@@ -373,6 +377,10 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         value[5] = IV_SPD;
     }
 
+    /// <summary>
+    /// Sets the IVs of the PKM in the order HP, ATK, DEF, SPE, SPA, SPD
+    /// </summary>
+    /// <param name="value">Span of length 6 to read the IVs from</param>
     public void SetIVs(ReadOnlySpan<int> value)
     {
         if (value.Length != 6)
@@ -385,6 +393,10 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         IV_SPD = value[5];
     }
 
+    /// <summary>
+    /// Retrieves the EVs of the PKM in the order HP, ATK, DEF, SPE, SPA, SPD
+    /// </summary>
+    /// <param name="value">Span of length 6 to write the EVs to</param>
     public void GetEVs(Span<int> value)
     {
         if (value.Length != 6)
@@ -397,6 +409,10 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         value[5] = EV_SPD;
     }
 
+    /// <summary>
+    /// Sets the EVs of the PKM in the order HP, ATK, DEF, SPE, SPA, SPD
+    /// </summary>
+    /// <param name="value">Span of length 6 to read the EVs from</param>
     public void SetEVs(ReadOnlySpan<int> value)
     {
         if (value.Length != 6)
@@ -427,16 +443,21 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         set => SetMoves(value);
     }
 
-    public void PushMove(ushort move)
+    public bool AddMove(ushort move, bool pushOut = true)
     {
         if (move == 0 || move >= MaxMoveID || HasMove(move))
-            return;
+            return false;
 
         var ct = MoveCount;
         if (ct == 4)
+        {
+            if (!pushOut)
+                return false;
             ct = 0;
+        }
         SetMove(ct, move);
         HealPPIndex(ct);
+        return true;
     }
 
     public int MoveCount => Convert.ToInt32(Move1 != 0) + Convert.ToInt32(Move2 != 0) + Convert.ToInt32(Move3 != 0) + Convert.ToInt32(Move4 != 0);
@@ -649,13 +670,7 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
     /// IV Judge scales his response 0 (worst) to 3 (best).<br/>
     /// Assumes IVs are in the 0-31 range, so this isn't really useful for Gen1/2 formats that are 0-15 per IV.
     /// </remarks>
-    public int PotentialRating => IVTotal switch
-    {
-        <=  90 => 0,
-        <= 120 => 1,
-        <= 150 => 2,
-        _      => 3,
-    };
+    public int PotentialRating => PowerPotential.GetPotential(IVTotal);
 
     /// <summary>
     /// Gets the current Battle Stats.
@@ -900,6 +915,23 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
     /// <inheritdoc cref="SetRandomIVs(Span{int},int)"/>
     public void SetRandomIVs(int minFlawless = 0) => SetRandomIVs(stackalloc int[6], minFlawless);
 
+    /// <inheritdoc cref="SetRandomIVs(Span{int},int)"/>
+    public void SetRandomIVs(IndividualValueSet template) => SetRandomIVs(stackalloc int[6], template);
+
+    /// <inheritdoc cref="SetRandomIVs(Span{int},int)"/>
+    public void SetRandomIVs(Span<int> ivs, IndividualValueSet template)
+    {
+        var rnd = Util.Rand;
+        for (int i = 0; i < ivs.Length; i++)
+        {
+            if (template[i] == -1)
+                ivs[i] = rnd.Next(MaxIV + 1);
+            else
+                ivs[i] = template[i];
+        }
+        SetIVs(ivs);
+    }
+
     /// <summary>
     /// Randomizes the IVs within game constraints.
     /// </summary>
@@ -1040,6 +1072,10 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
     /// </summary>
     public bool HasRelearnMove(ushort move) => RelearnMove1 == move || RelearnMove2 == move || RelearnMove3 == move || RelearnMove4 == move;
 
+    /// <summary>
+    /// Loads the Relearn moves into the <see cref="value"/> array.
+    /// </summary>
+    /// <param name="value">Span to load the relearn moves into.</param>
     public void GetRelearnMoves(Span<ushort> value)
     {
         value[3] = RelearnMove4;

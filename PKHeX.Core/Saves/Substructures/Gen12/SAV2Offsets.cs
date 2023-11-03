@@ -46,6 +46,8 @@ internal sealed class SAV2Offsets
     public int Daycare { get; }
 
     public int BlueCardPoints { get; private set; } = -1;
+    public int MysteryGiftItem { get; private set; } = -1;
+    public int MysteryGiftIsUnlocked { get; private set; } = -1;
 
     public int PouchTMHM { get; private set; } = -1;
     public int PouchItem { get; private set; } = -1;
@@ -60,6 +62,8 @@ internal sealed class SAV2Offsets
         Rival = 0x2021;
         DaylightSavings = 0x2042;
         OtherCurrentBox = 0x284C;
+        MysteryGiftIsUnlocked = 0xBE3; // And 0xBE5;
+
         switch (version)
         {
             case GameVersion.GS:
@@ -94,6 +98,7 @@ internal sealed class SAV2Offsets
                 CurrentBoxIndex = 0x2700;
                 BoxNames = 0x2703;
                 BlueCardPoints = 0x27D9;
+                MysteryGiftItem = 0xBE4;
                 Party = 0x2865;
                 PokedexCaught = 0x2A27;
                 PokedexSeen = 0x2A47;
@@ -125,6 +130,7 @@ internal sealed class SAV2Offsets
         Palette = 0x204C;
         CurrentBox = 0x2D10;
         OtherCurrentBox = 0x2842;
+        MysteryGiftIsUnlocked = 0xB51; // And 0xB53;
 
         switch (version)
         {
@@ -159,6 +165,7 @@ internal sealed class SAV2Offsets
                 CurrentBoxIndex = 0x26E2;
                 BoxNames = 0x26E5;
                 BlueCardPoints = 0x278E;
+                MysteryGiftItem = 0xB52;
                 Party = 0x281A;
                 PokedexCaught = 0x29AA;
                 PokedexSeen = 0x29CA;

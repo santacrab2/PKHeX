@@ -200,7 +200,7 @@ public sealed class Zukan9Kitakami : ZukanBase<SAV9SV>
                 entry.SetObtainedForm(form, true);
                 entry.SetLocalStates(pi, form, (byte)pi.RandomGender(), shinyToo);
             }
-            entry.SetAllLanguageFlags();
+            entry.SetLanguageFlag(SAV.Language, true);
         }
         else
         {
@@ -232,7 +232,18 @@ public sealed class Zukan9Kitakami : ZukanBase<SAV9SV>
         SetAllSeen(species, true, shinyToo);
         SetAllCaught(species, true, shinyToo);
     }
-
+    public override void SetMissing(bool shinyToo = false)
+    {
+        for(ushort species = 0; species < SAV.MaxSpeciesID; species++)
+        {
+            if (GetDexIndex(species).Index == 0)
+                continue;
+            var entry = SAV.Zukan.DexKitakami.Get(species);
+            if (entry.IsCaught)
+                continue;
+            SetDexEntryAll(species, shinyToo);
+        }
+    }
     public override void ClearDexEntryAll(ushort species) => Get(species).Clear();
 
     #endregion

@@ -270,15 +270,18 @@ public partial class SAV_PokedexSVKitakami : Form
         entry.SetIsModelSeen(true, CHK_SeenShiny.Checked);
 
         // Set Languages
-        entry.SetLanguageFlag((int)LanguageID.Japanese, CHK_LangJPN.Checked);
-        entry.SetLanguageFlag((int)LanguageID.English, CHK_LangENG.Checked);
-        entry.SetLanguageFlag((int)LanguageID.French, CHK_LangFRE.Checked);
-        entry.SetLanguageFlag((int)LanguageID.Italian, CHK_LangITA.Checked);
-        entry.SetLanguageFlag((int)LanguageID.German, CHK_LangGER.Checked);
-        entry.SetLanguageFlag((int)LanguageID.Spanish, CHK_LangSPA.Checked);
-        entry.SetLanguageFlag((int)LanguageID.Korean, CHK_LangKOR.Checked);
-        entry.SetLanguageFlag((int)LanguageID.ChineseS, CHK_LangCHS.Checked);
-        entry.SetLanguageFlag((int)LanguageID.ChineseT, CHK_LangCHT.Checked);
+        switch((LanguageID)SAV.Language)
+        {
+            case LanguageID.Japanese: entry.SetLanguageFlag((int)LanguageID.Japanese, CHK_LangJPN.Checked); break;
+            case LanguageID.English: entry.SetLanguageFlag((int)LanguageID.English, CHK_LangENG.Checked); break;
+            case LanguageID.French: entry.SetLanguageFlag((int)LanguageID.French, CHK_LangFRE.Checked); break;
+            case LanguageID.Italian: entry.SetLanguageFlag((int)LanguageID.Italian, CHK_LangITA.Checked); break;
+            case LanguageID.German: entry.SetLanguageFlag((int)LanguageID.German, CHK_LangGER.Checked); break;
+            case LanguageID.Spanish: entry.SetLanguageFlag((int)LanguageID.Spanish, CHK_LangSPA.Checked); break;
+            case LanguageID.Korean: entry.SetLanguageFlag((int)LanguageID.Korean, CHK_LangKOR.Checked); break;
+            case LanguageID.ChineseS: entry.SetLanguageFlag((int)LanguageID.ChineseS, CHK_LangCHS.Checked); break;
+            case LanguageID.ChineseT: entry.SetLanguageFlag((int)LanguageID.ChineseT, CHK_LangCHT.Checked); break;
+        }
 
         // Set Local Dexes
         entry.SetLocalPaldea((byte)CB_PaldeaForm.SelectedIndex, (byte)CB_PaldeaGender.SelectedIndex, CHK_PaldeaShiny.Checked ? (byte)1 : (byte)0);
@@ -344,6 +347,11 @@ public partial class SAV_PokedexSVKitakami : Form
 
     private void CaughtAll(object sender, EventArgs e)
     {
+        if (ModifierKeys == Keys.Control)
+        {
+            Dex.DexKitakami.SetMissing(true);
+            return;
+        }
         var species = GetSpecies(lastIndex);
         SetEntry(species);
         bool shiny = ModifierKeys == Keys.Shift;

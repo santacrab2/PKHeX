@@ -175,6 +175,11 @@ public sealed class MiscVerifier : Verifier
             if (pk9.TeraTypeOverride != (MoveType)TeraTypeUtil.OverrideNone)
                 data.AddLine(GetInvalid(LTeraTypeIncorrect));
         }
+        else if (pk9.Species == (int)Species.Terapagos)
+        {
+            if (!TeraTypeUtil.IsValidTerapagos((byte)pk9.TeraTypeOverride))
+                data.AddLine(GetInvalid(LTeraTypeIncorrect));
+        }
         else if (pk9.Species == (int)Species.Ogerpon)
         {
             if (!TeraTypeUtil.IsValidOgerpon((byte)pk9.TeraTypeOverride, pk9.Form))
@@ -223,8 +228,15 @@ public sealed class MiscVerifier : Verifier
         {
             if (enc is { Species: (int)Species.Larvesta, Form: 0 } and not EncounterEgg)
                 DisallowLevelUpMove(24, (ushort)Move.BugBite, pk9, data);
-            if (enc is { Species: (int)Species.Zorua, Form: 1 } and not EncounterEgg)
+            else if (enc is { Species: (int)Species.Zorua, Form: 1 } and not EncounterEgg)
                 DisallowLevelUpMove(28, (ushort)Move.Spite, pk9, data);
+            else
+                return;
+
+            // Safari and Sport are not obtainable in the base game.
+            // For the learnset restricted cases, we need to check if the ball is available too.
+            if (((BallUseLegality.WildPokeballs9PreDLC2 >> pk9.Ball) & 1) != 1)
+                data.AddLine(GetInvalid(LBallUnavailable));
         }
     }
 
@@ -240,8 +252,7 @@ public sealed class MiscVerifier : Verifier
         if (m.Info.Method != LearnMethod.LevelUp || m.Info.Argument != level)
             return;
         var flagIndex = pk.Permit.RecordPermitIndexes.IndexOf(move);
-        if (flagIndex == -1)
-            throw new ArgumentOutOfRangeException(nameof(move), move, "Expected a valid TM index.");
+        ArgumentOutOfRangeException.ThrowIfNegative(flagIndex, nameof(move)); // Always expect it to match.
         if (pk.GetMoveRecordFlag(flagIndex))
             return;
         m = new MoveResult(LearnMethod.None);

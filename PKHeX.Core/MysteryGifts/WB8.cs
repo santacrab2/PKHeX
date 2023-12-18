@@ -217,15 +217,13 @@ public sealed class WB8(byte[] Data) : DataMysteryGift(Data),
 
     public byte GetRibbonAtIndex(int byteIndex)
     {
-        if ((uint)byteIndex >= RibbonBytesCount)
-            throw new ArgumentOutOfRangeException(nameof(byteIndex));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual<uint>((uint)byteIndex, RibbonBytesCount);
         return Data[RibbonBytesOffset + byteIndex];
     }
 
     public void SetRibbonAtIndex(int byteIndex, byte ribbonIndex)
     {
-        if ((uint)byteIndex >= RibbonBytesCount)
-            throw new ArgumentOutOfRangeException(nameof(byteIndex));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual<uint>((uint)byteIndex, RibbonBytesCount);
         Data[RibbonBytesOffset + byteIndex] = ribbonIndex;
     }
 
@@ -828,20 +826,17 @@ public sealed class WB8(byte[] Data) : DataMysteryGift(Data),
     public bool RibbonHisui { get => this.GetRibbonIndex(Hisui); set => this.SetRibbonIndex(Hisui, value); }
 
     public int GetRibbonByte(int index) => Array.IndexOf(Data, (byte)index, RibbonBytesOffset, RibbonBytesCount);
-    public bool GetRibbon(int index) => GetRibbonByte(index) >= 0;
+    public bool GetRibbon(int index) => RibbonSpan.Contains((byte)index);
 
     public void SetRibbon(int index, bool value = true)
     {
-        if ((uint)index > (uint)MarkSlump)
-            throw new ArgumentOutOfRangeException(nameof(index));
-
+        ArgumentOutOfRangeException.ThrowIfGreaterThan((uint)index, (uint)RibbonIndexExtensions.MAX_G8B);
         if (value)
         {
             if (GetRibbon(index))
                 return;
             var openIndex = Array.IndexOf(Data, RibbonByteNone, RibbonBytesOffset, RibbonBytesCount);
-            if (openIndex == -1) // Full?
-                throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(openIndex, nameof(openIndex)); // Full?
             SetRibbonAtIndex(openIndex, (byte)index);
         }
         else

@@ -140,18 +140,18 @@ public static partial class Extensions
         };
         if (sav is SAV7USUM uu)
         {
-            list.AddRange(new[]
-            {
+            list.AddRange(
+            [
                 new SlotInfoMisc(uu.Data, 1, uu.GetFusedSlotOffset(1)) {Type = StorageSlotType.Fused},
                 new SlotInfoMisc(uu.Data, 2, uu.GetFusedSlotOffset(2)) {Type = StorageSlotType.Fused},
-            });
+            ]);
             var ba = uu.BattleAgency;
-            list.AddRange(new[]
-            {
+            list.AddRange(
+            [
                 new SlotInfoMisc(uu.Data, 0, ba.GetSlotOffset(0)) {Type = StorageSlotType.Misc},
                 new SlotInfoMisc(uu.Data, 1, ba.GetSlotOffset(1)) {Type = StorageSlotType.Misc},
                 new SlotInfoMisc(uu.Data, 2, ba.GetSlotOffset(2)) {Type = StorageSlotType.Misc},
-            });
+            ]);
         }
 
         if (!all)
@@ -222,12 +222,17 @@ public static partial class Extensions
         var afterBox = sav.GetBoxOffset(BoxLayout9.BoxCount);
         var list = new List<SlotInfoMisc>
         {
+            // Ride Legend
             new(sav.BoxInfo.Data.AsMemory(afterBox), 0, true, Mutable: true) { Type = StorageSlotType.Party },
         };
 
         var block = sav.Blocks.GetBlock(SaveBlockAccessor9SV.KFusedCalyrex);
-        var c = new SlotInfoMisc(block.Data, 3, 0, true) { Type = StorageSlotType.Fused };
-        list.Add(c);
+        list.Add(new(block.Data, 0, 0, true) { Type = StorageSlotType.Fused });
+
+        if (sav.Blocks.TryGetBlock(SaveBlockAccessor9SV.KFusedKyurem, out var kyurem))
+            list.Add(new(kyurem.Data, 1, 0, true) { Type = StorageSlotType.Fused });
+        if (sav.Blocks.TryGetBlock(SaveBlockAccessor9SV.KFusedNecrozma, out var necrozma))
+            list.Add(new(necrozma.Data, 2, 0, true) { Type = StorageSlotType.Fused });
         return list;
     }
 }

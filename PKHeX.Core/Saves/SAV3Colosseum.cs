@@ -37,9 +37,11 @@ public sealed class SAV3Colosseum : SaveFile, IGCSaveFile
     private int Memo;
 
     private readonly byte[] BAK;
+    private readonly bool Japanese;
 
-    public SAV3Colosseum() : base(SaveUtil.SIZE_G3COLO)
+    public SAV3Colosseum(bool japanese = false) : base(SaveUtil.SIZE_G3COLO)
     {
+        Japanese = japanese;
         BAK = [];
         StrategyMemo = Initialize();
         ClearBoxes();
@@ -47,6 +49,7 @@ public sealed class SAV3Colosseum : SaveFile, IGCSaveFile
 
     public SAV3Colosseum(byte[] data) : base(data)
     {
+        Japanese = data[0] == 0x83; // Japanese game name first character
         BAK = data;
         InitializeData();
         StrategyMemo = Initialize();
@@ -158,8 +161,7 @@ public sealed class SAV3Colosseum : SaveFile, IGCSaveFile
 
     private static byte[] EncryptColosseum(ReadOnlySpan<byte> input, Span<byte> digest)
     {
-        if (input.Length != SLOT_SIZE)
-            throw new ArgumentException("Incorrect slot size", nameof(input));
+        ArgumentOutOfRangeException.ThrowIfNotEqual(input.Length, SLOT_SIZE);
 
         byte[] output = input.ToArray();
 
@@ -182,8 +184,7 @@ public sealed class SAV3Colosseum : SaveFile, IGCSaveFile
 
     private static byte[] DecryptColosseum(ReadOnlySpan<byte> input, Span<byte> digest)
     {
-        if (input.Length != SLOT_SIZE)
-            throw new ArgumentException("Incorrect slot size", nameof(input));
+        ArgumentOutOfRangeException.ThrowIfNotEqual(input.Length, SLOT_SIZE);
 
         byte[] output = input.ToArray();
 
@@ -308,6 +309,8 @@ public sealed class SAV3Colosseum : SaveFile, IGCSaveFile
 
         ck3.CurrentRegion = (byte)CurrentRegion;
         ck3.OriginalRegion = (byte)OriginalRegion;
+
+        ck3.ForceCorrectFatefulState(Japanese, ck3.FatefulEncounter);
     }
 
     protected override void SetDex(PKM pk)

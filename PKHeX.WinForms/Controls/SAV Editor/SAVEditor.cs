@@ -501,17 +501,17 @@ public partial class SAVEditor : UserControl, ISlotViewer<PictureBox>, ISaveFile
     }
 
     private void B_OpenWondercards_Click(object sender, EventArgs e) => OpenDialog(new SAV_Wondercard(SAV, sender as DataMysteryGift));
-    private void B_OpenPokepuffs_Click(object sender, EventArgs e) => OpenDialog(new SAV_Pokepuff(SAV));
-    private void B_OpenPokeBeans_Click(object sender, EventArgs e) => OpenDialog(new SAV_Pokebean(SAV));
+    private void B_OpenPokepuffs_Click(object sender, EventArgs e) => OpenDialog(new SAV_Pokepuff((ISaveBlock6Main)SAV));
+    private void B_OpenPokeBeans_Click(object sender, EventArgs e) => OpenDialog(new SAV_Pokebean((SAV7)SAV));
     private void B_OpenItemPouch_Click(object sender, EventArgs e) => OpenDialog(new SAV_Inventory(SAV));
     private void B_OpenBerryField_Click(object sender, EventArgs e) => OpenDialog(new SAV_BerryFieldXY((SAV6XY)SAV));
-    private void B_OpenPokeblocks_Click(object sender, EventArgs e) => OpenDialog(new SAV_PokeBlockORAS(SAV));
-    private void B_OpenSuperTraining_Click(object sender, EventArgs e) => OpenDialog(new SAV_SuperTrain(SAV));
-    private void B_OpenSecretBase_Click(object sender, EventArgs e) => OpenDialog(new SAV_SecretBase(SAV));
-    private void B_CellsStickers_Click(object sender, EventArgs e) => OpenDialog(new SAV_ZygardeCell(SAV));
+    private void B_OpenPokeblocks_Click(object sender, EventArgs e) => OpenDialog(new SAV_PokeBlockORAS((SAV6AO)SAV));
+    private void B_OpenSuperTraining_Click(object sender, EventArgs e) => OpenDialog(new SAV_SuperTrain((SAV6)SAV));
+    private void B_OpenSecretBase_Click(object sender, EventArgs e) => OpenDialog(new SAV_SecretBase((SAV6AO)SAV));
+    private void B_CellsStickers_Click(object sender, EventArgs e) => OpenDialog(new SAV_ZygardeCell((SAV7)SAV));
     private void B_LinkInfo_Click(object sender, EventArgs e) => OpenDialog(new SAV_Link6(SAV));
     private void B_OpenApricorn_Click(object sender, EventArgs e) => OpenDialog(new SAV_Apricorn((SAV4HGSS)SAV));
-    private void B_CGearSkin_Click(object sender, EventArgs e) => OpenDialog(new SAV_CGearSkin(SAV));
+    private void B_CGearSkin_Click(object sender, EventArgs e) => OpenDialog(new SAV_CGearSkin((SAV5)SAV));
     private void B_OpenTrainerInfo_Click(object sender, EventArgs e) => OpenDialog(GetTrainerEditor(SAV));
     private void B_OpenOPowers_Click(object sender, EventArgs e) => OpenDialog(new SAV_OPower((ISaveBlock6Main)SAV));
     private void B_OpenHoneyTreeEditor_Click(object sender, EventArgs e) => OpenDialog(new SAV_HoneyTree((SAV4Sinnoh)SAV));
@@ -566,22 +566,22 @@ public partial class SAVEditor : UserControl, ISlotViewer<PictureBox>, ISaveFile
         if (SAV is SAV9SV sv)
         {
             if (sender == B_Raids)
-                OpenDialog(new SAV_Raid9(sv, sv.RaidPaldea));
-            else if (sender == B_RaidKitakami)
-                OpenDialog(new SAV_Raid9(sv, sv.RaidKitakami));
-            else if (sender == B_RaidBlueberry)
-                OpenDialog(new SAV_Raid9(sv, sv.RaidBlueberry));
+                OpenDialog(new SAV_Raid9(sv, TeraRaidOrigin.Paldea));
+            else if (sender == B_RaidDLC1)
+                OpenDialog(new SAV_Raid9(sv, TeraRaidOrigin.Kitakami));
+            else if (sender == B_RaidDLC2)
+                OpenDialog(new SAV_Raid9(sv, TeraRaidOrigin.BlueberryAcademy));
             else if (sender == B_RaidsSevenStar)
-                OpenDialog(new SAV_RaidSevenStar9(sv, sv.RaidSevenStar));
+                OpenDialog(new SAV_RaidSevenStar9(sv));
         }
         else if (SAV is SAV8SWSH swsh)
         {
             if (sender == B_Raids)
-                OpenDialog(new SAV_Raid8(swsh, swsh.Raid));
-            else if (sender == B_RaidArmor)
-                OpenDialog(new SAV_Raid8(swsh, swsh.RaidArmor));
-            else
-                OpenDialog(new SAV_Raid8(swsh, swsh.RaidCrown));
+                OpenDialog(new SAV_Raid8(swsh, MaxRaidOrigin.Galar));
+            else if (sender == B_RaidDLC1)
+                OpenDialog(new SAV_Raid8(swsh, MaxRaidOrigin.IsleOfArmor));
+            else if(sender == B_RaidDLC2)
+                OpenDialog(new SAV_Raid8(swsh, MaxRaidOrigin.CrownTundra));
         }
     }
 
@@ -673,12 +673,12 @@ public partial class SAVEditor : UserControl, ISlotViewer<PictureBox>, ISaveFile
 
     private void B_OpenMiscEditor_Click(object sender, EventArgs e)
     {
-        using var form = SAV.Generation switch
+        using var form = SAV switch
         {
-            3 => new SAV_Misc3(SAV),
-            4 => new SAV_Misc4((SAV4)SAV),
-            5 => new SAV_Misc5(SAV),
-            8 when SAV is SAV8BS bs => new SAV_Misc8b(bs),
+            SAV3 sav3 => new SAV_Misc3(sav3),
+            SAV4 sav4 => new SAV_Misc4(sav4),
+            SAV5 sav5 => new SAV_Misc5(sav5),
+            SAV8BS bs => new SAV_Misc8b(bs),
             _ => (Form?)null,
         };
         form?.ShowDialog();
@@ -1168,10 +1168,8 @@ public partial class SAVEditor : UserControl, ISlotViewer<PictureBox>, ISaveFile
 
         B_Raids.Visible = sav is SAV8SWSH or SAV9SV;
         B_RaidsSevenStar.Visible = sav is SAV9SV;
-        B_RaidArmor.Visible = sav is SAV8SWSH { SaveRevision: >= 1 };
-        B_RaidCrown.Visible = sav is SAV8SWSH { SaveRevision: >= 2 };
-        B_RaidKitakami.Visible = sav is SAV9SV { SaveRevision: >= 1 };
-        B_RaidBlueberry.Visible = sav is SAV9SV { SaveRevision: >= 2 };
+        B_RaidDLC1.Visible = sav is SAV8SWSH { SaveRevision: >= 1 } or SAV9SV { SaveRevision: >= 1 };
+        B_RaidDLC2.Visible = sav is SAV8SWSH { SaveRevision: >= 2 } or SAV9SV { SaveRevision: >= 2 };
         FLP_SAVtools.Visible = B_Blocks.Visible = true;
 
         var list = FLP_SAVtools.Controls.OfType<Control>().OrderBy(z => z.Text).ToArray();

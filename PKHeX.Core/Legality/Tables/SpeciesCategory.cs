@@ -67,6 +67,7 @@ public static class SpeciesCategory
     /// </summary>
     public static bool IsParadox(ushort species) => species is (>= (int)GreatTusk and <= (int)IronThorns)
         or (int)RoaringMoon or (int)IronValiant
+        or (int)WalkingWake or (int)IronLeaves
         or (int)GougingFire or (int)RagingBolt or (int)IronBoulder or (int)IronCrown;
 
     public static bool IsFixedGenderFromDual(ushort currentSpecies) => currentSpecies switch

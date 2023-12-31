@@ -200,6 +200,7 @@ public sealed record EncounterTera9
             ID32 = tr.ID32,
         };
         SetPINGA(pk, criteria, pi);
+
         pk.SetMoves(Moves);
 
         pk.ResetPartyStats();

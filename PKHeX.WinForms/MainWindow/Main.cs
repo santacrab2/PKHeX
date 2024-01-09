@@ -420,10 +420,14 @@ public partial class Main : Form
         C_SAV.M.Hover.GlowHover = settings.Hover.HoverSlotGlowEdges;
         ParseSettings.InitFromSettings(settings.Legality);
         PKME_Tabs.HideSecretValues = C_SAV.HideSecretDetails = settings.Privacy.HideSecretDetails;
-        EntityConverter.AllowIncompatibleConversion = settings.Advanced.AllowIncompatibleConversion;
-        EntityConverter.RejuvenateHOME = settings.Advanced.AllowGuessRejuvenateHOME;
         WinFormsUtil.DetectSaveFileOnFileOpen = settings.Startup.TryDetectRecentSave;
         SelectablePictureBox.FocusBorderDeflate = GenderToggle.FocusBorderDeflate = settings.Display.FocusBorderDeflate;
+
+        var converter = settings.Converter;
+        EntityConverter.AllowIncompatibleConversion = converter.AllowIncompatibleConversion;
+        EntityConverter.RejuvenateHOME = converter.AllowGuessRejuvenateHOME;
+        EntityConverter.VirtualConsoleSourceGen1 = converter.VirtualConsoleSourceGen1;
+        EntityConverter.VirtualConsoleSourceGen2 = converter.VirtualConsoleSourceGen2;
 
         SpriteBuilder.LoadSettings(settings.Sprite);
     }
@@ -970,6 +974,9 @@ public partial class Main : Form
             PKME_Tabs.PopulateFields(pk); // put data back in form
             Text = GetProgramTitle(sav);
         }
+
+        foreach (var plugin in Plugins)
+            plugin.NotifyDisplayLanguageChanged(lang);
     }
     #endregion
 

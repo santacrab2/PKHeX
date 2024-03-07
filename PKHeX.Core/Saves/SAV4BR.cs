@@ -7,7 +7,7 @@ namespace PKHeX.Core;
 /// <summary>
 /// Generation 4 <see cref="SaveFile"/> object for Pokémon Battle Revolution saves.
 /// </summary>
-public sealed class SAV4BR : SaveFile
+public sealed class SAV4BR : SaveFile, IBoxDetailName
 {
     protected internal override string ShortSummary => $"{Version} #{SaveCount:0000}";
     public override string Extension => string.Empty;
@@ -102,12 +102,11 @@ public sealed class SAV4BR : SaveFile
     public override int MaxAbilityID => Legal.MaxAbilityID_4;
     public override int MaxItemID => Legal.MaxItemID_4_HGSS;
     public override int MaxBallID => Legal.MaxBallID_4;
-    public override int MaxGameID => Legal.MaxGameID_4;
+    public override GameVersion MaxGameID => Legal.MaxGameID_4;
 
     public override int MaxEV => EffortValues.Max255;
-    public override int Generation => 4;
+    public override byte Generation => 4;
     public override EntityContext Context => EntityContext.Gen4;
-    protected override int GiftCountMax => 1;
     public override int MaxStringLengthOT => 7;
     public override int MaxStringLengthNickname => 10;
     public override int MaxMoney => 999999;
@@ -154,7 +153,7 @@ public sealed class SAV4BR : SaveFile
     }
 
     // Trainer Info
-    public override GameVersion Version { get => GameVersion.BATREV; protected set { } }
+    public override GameVersion Version { get => GameVersion.BATREV; set { } }
 
     private string GetOTName(int slot)
     {
@@ -206,18 +205,18 @@ public sealed class SAV4BR : SaveFile
         return Data.AsSpan(ofs, BoxNameLength);
     }
 
-    public override string GetBoxName(int box)
+    public string GetBoxName(int box)
     {
         if (BoxName < 0)
-            return $"BOX {box + 1}";
+            return BoxDetailNameExtensions.GetDefaultBoxNameCaps(box);
 
         var span = GetBoxNameSpan(box);
         if (ReadUInt16BigEndian(span) == 0)
-            return $"BOX {box + 1}";
+            return BoxDetailNameExtensions.GetDefaultBoxNameCaps(box);
         return GetString(span);
     }
 
-    public override void SetBoxName(int box, ReadOnlySpan<char> value)
+    public void SetBoxName(int box, ReadOnlySpan<char> value)
     {
         if (BoxName < 0)
             return;
@@ -244,9 +243,8 @@ public sealed class SAV4BR : SaveFile
     {
         var pk4 = (BK4)pk;
         // Apply to this Save File
-        var now = EncounterDate.GetDateNDS();
-        if (pk4.Trade(OT, ID32, Gender, now.Day, now.Month, now.Year))
-            pk.RefreshChecksum();
+        pk4.UpdateHandler(this);
+        pk.RefreshChecksum();
     }
 
     protected override void SetPartyValues(PKM pk, bool isParty)

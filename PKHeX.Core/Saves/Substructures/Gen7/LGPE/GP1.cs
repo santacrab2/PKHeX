@@ -18,20 +18,14 @@ public sealed class GP1(byte[] Data)
     public bool EggEncounter => false;
     public byte LevelMin => Level;
     public byte LevelMax => Level;
-    public int Generation => 7;
+    public byte Generation => 7;
     public EntityContext Context => EntityContext.Gen7b;
     public AbilityPermission Ability => AbilityPermission.Any12;
 
     public GP1() : this(new byte[SIZE]) => InitializeBlank(Data);
-    public void WriteTo(byte[] data, int offset) => Data.CopyTo(data, offset);
+    public void WriteTo(Span<byte> data) => Data.CopyTo(data);
 
-    public static GP1 FromData(byte[] data, int offset)
-    {
-        var span = data.AsSpan(offset);
-        return FromData(span);
-    }
-
-    private static GP1 FromData(ReadOnlySpan<byte> span)
+    public static GP1 FromData(ReadOnlySpan<byte> span)
     {
         var result = new GP1();
         span[..SIZE].CopyTo(result.Data);
@@ -105,7 +99,7 @@ public sealed class GP1(byte[] Data)
     public int Month => (Date / 1_00) % 1_00;
     public int Day => Date % 1_00;
 
-    public int Gender => Data[0x70] - 1; // M=1, F=2, G=3 ;; shift down by 1.
+    public byte Gender => (byte)(Data[0x70] - 1); // M=1, F=2, G=3 ;; shift down by 1.
 
     public byte Form => Data[0x72];
     public bool IsShiny => Data[0x73] == 1;
@@ -131,7 +125,7 @@ public sealed class GP1(byte[] Data)
         {
             string form = Form > 0 ? $"-{Form:00}" : string.Empty;
             string star = IsShiny ? " ★" : string.Empty;
-            return $"{Species:000}{form}{star} - {NickStr} - Lv. {Level:00} - {IV_HP:00}.{IV_ATK:00}.{IV_DEF:00} - CP {CP:0000} (Moves {Move1:000}, {Move2:000})";
+            return $"{Species:0000}{form}{star} - {NickStr} - Lv. {Level:00} - {IV_HP:00}.{IV_ATK:00}.{IV_DEF:00} - CP {CP:0000} (Moves {Move1:000}, {Move2:000})";
         }
     }
 
@@ -155,18 +149,18 @@ public sealed class GP1(byte[] Data)
         {
             EncryptionConstant = rnd.Rand32(),
             PID = rnd.Rand32(),
-            Version = (int) GameVersion.GO,
+            Version = GameVersion.GO,
             Species = Species,
             Form = Form,
-            Met_Location = 50, // Go complex
-            Met_Year = Year - 2000,
-            Met_Month = Month,
-            Met_Day = Day,
+            MetLocation = 50, // Go complex
+            MetYear = (byte)(Year - 2000),
+            MetMonth = (byte)Month,
+            MetDay = (byte)Day,
             CurrentLevel = Level,
-            Met_Level = Level,
+            MetLevel = Level,
             TID16 = sav.TID16,
             SID16 = sav.SID16,
-            OT_Name = sav.OT,
+            OriginalTrainerName = sav.OT,
             Ball = 4,
             Language = sav.Language,
         };
@@ -189,7 +183,7 @@ public sealed class GP1(byte[] Data)
 
         var pi = pk.PersonalInfo;
         pk.Gender = criteria.GetGender(Gender, pi);
-        pk.Nature = (int)criteria.GetNature();
+        pk.Nature = criteria.GetNature();
         pk.RefreshAbility(criteria.GetAbilityFromNumber(Ability));
 
         bool isShiny = pk.IsShiny;
@@ -206,7 +200,7 @@ public sealed class GP1(byte[] Data)
         Span<ushort> moves = stackalloc ushort[4];
         ((ILearnSource)LearnSource7GG.Instance).SetEncounterMoves(Species, Form, Level, moves);
         pk.SetMoves(moves);
-        pk.OT_Friendship = pk.PersonalInfo.BaseFriendship;
+        pk.OriginalTrainerFriendship = pk.PersonalInfo.BaseFriendship;
 
         pk.HeightScalar = HeightScalar;
         pk.WeightScalar = WeightScalar;

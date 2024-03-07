@@ -3,7 +3,7 @@ using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PKHeX.Core;
 
-public sealed class Dendou4
+public sealed class Dendou4(Memory<byte> raw)
 {
     private const int SIZE = 0x2AB0;
     private const int SIZE_FOOTER = 0x10;
@@ -12,10 +12,7 @@ public sealed class Dendou4
     public const int MaxClears = 9999;
     public const int MaxRecords = 30;
 
-    private readonly byte[] Raw;
-    private readonly int Offset;
-    private Span<byte> Data => Raw.AsSpan(Offset, SIZE_BLOCK);
-    public Dendou4(byte[] data, int offset) => (Raw, Offset) = (data, offset);
+    private Span<byte> Data => raw.Span;
 
     // Structure:
     // record[30] records
@@ -98,17 +95,17 @@ public readonly ref struct Dendou4Entity
     public uint PID  { get => ReadUInt32LittleEndian(Data[4..]); set => WriteUInt32LittleEndian(Data[4..], value); }
     public uint ID32 { get => ReadUInt32LittleEndian(Data[8..]); set => WriteUInt32LittleEndian(Data[8..], value); }
 
-    public Span<byte> Nickname_Trash => Data.Slice(0x0C, 22);
-    public Span<byte> OT_Trash => Data.Slice(0x22, 16);
+    public Span<byte> NicknameTrash => Data.Slice(0x0C, 22);
+    public Span<byte> OriginalTrainerTrash => Data.Slice(0x22, 16);
     public string Nickname
     {
-        get => StringConverter4.GetString(Nickname_Trash);
-        set => StringConverter4.SetString(Nickname_Trash, value, 10, StringConverterOption.None);
+        get => StringConverter4.GetString(NicknameTrash);
+        set => StringConverter4.SetString(NicknameTrash, value, 10, StringConverterOption.None);
     }
-    public string OT_Name
+    public string OriginalTrainerName
     {
-        get => StringConverter4.GetString(OT_Trash);
-        set => StringConverter4.SetString(OT_Trash, value, 7, StringConverterOption.None);
+        get => StringConverter4.GetString(OriginalTrainerTrash);
+        set => StringConverter4.SetString(OriginalTrainerTrash, value, 7, StringConverterOption.None);
     }
 
     public ushort Move1 { get => ReadUInt16LittleEndian(Data[0x32..]); set => WriteUInt16LittleEndian(Data[0x32..], value); }

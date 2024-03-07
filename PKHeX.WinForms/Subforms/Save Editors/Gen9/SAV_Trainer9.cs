@@ -106,7 +106,7 @@ public partial class SAV_Trainer9 : Form
     private void GetTextBoxes()
     {
         // Get Data
-        CB_Game.SelectedIndex = SAV.Game - (int)GameVersion.SL;
+        CB_Game.SelectedIndex = SAV.Version - GameVersion.SL;
         CB_Gender.SelectedIndex = SAV.Gender;
 
         // Display Data
@@ -122,6 +122,7 @@ public partial class SAV_Trainer9 : Form
         MT_Seconds.Text = SAV.PlayedSeconds.ToString();
 
         CAL_AdventureStartDate.Value = SAV.EnrollmentDate.Timestamp;
+        CAL_LastSavedDate.Value = CAL_LastSavedTime.Value = SAV.LastSaved.Timestamp;
     }
 
     private void Save()
@@ -152,7 +153,7 @@ public partial class SAV_Trainer9 : Form
 
     private void SaveTrainerInfo()
     {
-        SAV.Game = (byte)(CB_Game.SelectedIndex + (int)GameVersion.SL);
+        SAV.Version = (GameVersion)(CB_Game.SelectedIndex + (byte)GameVersion.SL);
         SAV.Gender = (byte)CB_Gender.SelectedIndex;
 
         SAV.Money = Util.ToUInt32(MT_Money.Text);
@@ -166,6 +167,7 @@ public partial class SAV_Trainer9 : Form
         SAV.PlayedSeconds = ushort.Parse(MT_Seconds.Text) % 60;
 
         SAV.EnrollmentDate.Timestamp = CAL_AdventureStartDate.Value;
+        SAV.LastSaved.Timestamp = CAL_LastSavedDate.Value.Date.AddSeconds(CAL_LastSavedTime.Value.TimeOfDay.TotalSeconds);
 
         if (SAV.Blocks.TryGetBlock(KBlueberryPoints, out var block))
             block.SetValue(Util.ToUInt32(MT_BP.Text));

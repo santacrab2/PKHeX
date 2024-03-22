@@ -84,21 +84,20 @@ public sealed record EncounterSlot4(EncounterArea4 Parent, ushort Species, byte 
 
     private void SetPINGA(PK4 pk, EncounterCriteria criteria, PersonalInfo4 pi)
     {
-        var gender = criteria.GetGender(pi);
-        var nature = criteria.GetNature();
-        var ability = criteria.GetAbilityFromNumber(Ability);
-        var lvl = new SingleLevelRange(LevelMin);
         bool hgss = pk.HGSS;
-        int ctr = 0;
-        do
+        uint seed;
+        if (hgss)
         {
-            var seed = PIDGenerator.SetRandomWildPID4(pk, nature, ability, gender, PIDType.Method_1);
-            if (!LeadFinder.TryGetLeadInfo4(this, lvl, hgss, seed, 4, out _))
-                continue;
-            if (Species == (int)Core.Species.Unown)
-                pk.Form = GetUnownForm(seed, hgss);
-            break;
-        } while (ctr++ < 10_000);
+            if (!criteria.IsSpecifiedIVs() || !this.SetFromIVsK(pk, pi, criteria, out seed))
+                seed = this.SetRandomK(pk, pi, criteria, Util.Rand32());
+        }
+        else
+        {
+            if (!criteria.IsSpecifiedIVs() || !this.SetFromIVsJ(pk, pi, criteria, out seed))
+                seed = this.SetRandomJ(pk, pi, criteria, Util.Rand32());
+        }
+        if (Species == (int)Core.Species.Unown)
+            pk.Form = GetUnownForm(seed, hgss);
     }
 
     /// <summary>
@@ -131,7 +130,10 @@ public sealed record EncounterSlot4(EncounterArea4 Parent, ushort Species, byte 
         {
             // Must match level exactly.
             if (!this.IsLevelWithinRange(pk.MetLevel))
-                return false;
+            {
+                if ((Type is not Grass || pk.MetLevel != PressureLevel) || ParseSettings.RNGFrameNotFound4 != Severity.Invalid)
+                    return false; // Only allow Pressure Slots through if they'll be checked by the later Lead verification.
+            }
         }
         else
         {

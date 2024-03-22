@@ -65,6 +65,7 @@ public static class MethodJ
     private static bool IsFeebasChance(uint rand) => (rand >> 15) == 1;
 
     private static uint GetNature(uint rand) => rand / 0xA3Eu;
+    public static uint GetHoneyTreeLevel(uint rand) => 5 + (rand / 0x1745); // 5957; rand(11) using the pre-compiled rand function.
 
     /// <summary>
     /// Gets the first possible origin seed and lead for the input encounter &amp; constraints.
@@ -92,7 +93,9 @@ public static class MethodJ
         }
     }
 
-    private static bool CheckEncounterActivation<T>(T enc, ref LeadSeed result)
+    public static bool IsEncounterCheckApplicable(SlotType4 type) => type is HoneyTree || type.IsFishingRodType();
+
+    public static bool CheckEncounterActivation<T>(T enc, ref LeadSeed result)
         where T : IEncounterSlot4
     {
         if (enc.Type.IsFishingRodType())
@@ -102,10 +105,15 @@ public static class MethodJ
                 if (!IsValidCoronetB1F(s4, ref result.Seed))
                     return false;
             }
-            // D/P don't reference Suction Cups or Sticky Hold.
-            return enc is IVersion { Version: Pt }
-                ? IsFishPossible(enc.Type, ref result.Seed, ref result.Lead)
-                : IsFishPossible(enc.Type, ref result.Seed);
+            // D/P/Pt don't update the rod rate boost for Suction Cups or Sticky Hold correctly.
+            return IsFishPossible(enc.Type, ref result.Seed);
+        }
+        if (enc.Type is HoneyTree)
+        {
+            // Doesn't actually consume the Encounter Slot call, we return true when comparing ESV.
+            // Roll forward once here rather than add a branch in each method.
+            ref var seed = ref result.Seed;
+            seed = LCRNG.Next(seed);
         }
         // Can sweet scent trigger.
         return true;
@@ -124,6 +132,12 @@ public static class MethodJ
             }
             return IsFishPossible(enc.Type, ref result);
         }
+        if (enc.Type is HoneyTree)
+        {
+            // Doesn't actually consume the Encounter Slot call, we return true when comparing ESV.
+            // Roll forward once here rather than add a branch in each method.
+            result = LCRNG.Next(result);
+        }
         // Can sweet scent trigger.
         return true;
     }
@@ -134,7 +148,7 @@ public static class MethodJ
         // This occurs in Mt. Coronet B1F; if passed, check if the player is on a Feebas tile before replacing.
         // 0 - Hook
         // 1 - CheckTiles -- current seed
-        // 2- ESV
+        // 2 - ESV
         if (s4.Species is (int)Species.Feebas && !IsFeebasChance(result >> 16))
             return false;
 
@@ -199,7 +213,7 @@ public static class MethodJ
             return TryGetMatchNoSync(ctx, out result);
         }
         var syncProc = IsSyncPass(p0);
-        if (syncProc)
+        if (syncProc && !(enc.Type is Grass && enc.LevelMax < levelMin))
         {
             var ctx = new FrameCheckDetails<T>(enc, seed, levelMin, levelMax, format);
             if (IsSlotValidRegular(ctx, out seed))
@@ -266,6 +280,16 @@ public static class MethodJ
     private static bool TryGetMatchNoSync<T>(in FrameCheckDetails<T> ctx, out LeadSeed result)
         where T : IEncounterSlot4
     {
+        if (ctx.Encounter.Type is Grass)
+        {
+            if (ctx.Encounter.LevelMax > ctx.LevelMin) // Must be boosted via Pressure/Hustle/Vital Spirit
+            {
+                if (IsSlotValidHustleVital(ctx, out var pressure))
+                { result = new(pressure, PressureHustleSpirit); return true; }
+                result = default; return false;
+            }
+        }
+
         if (IsSlotValidRegular(ctx, out uint seed))
         { result = new(seed, None); return true; }
 
@@ -281,10 +305,13 @@ public static class MethodJ
 
         if (IsSlotValidStaticMagnet(ctx, out seed, out var lead))
         { result = new(seed, lead); return true; }
-        if (IsSlotValidHustleVital(ctx, out seed))
-        { result = new(seed, PressureHustleSpirit); return true; }
         if (IsSlotValidIntimidate(ctx, out seed))
         { result = new(seed, IntimidateKeenEyeFail); return true; }
+        if (ctx.Encounter.PressureLevel <= ctx.LevelMax) // Can be boosted, or not.
+        {
+            if (IsSlotValidHustleVital(ctx, out var pressure))
+            { result = new(pressure, PressureHustleSpirit); return true; }
+        }
 
         if (CanRadar(ctx.Encounter))
         { result = new(ctx.Seed1, Radar); return true; }
@@ -292,7 +319,7 @@ public static class MethodJ
         result = default; return false;
     }
 
-    private static bool IsLevelRand<T>(T enc) where T : IEncounterSlot4 => enc.Type.IsLevelRandDPPt();
+    public static bool IsLevelRand<T>(T enc) where T : IEncounterSlot4 => enc.Type.IsLevelRandDPPt();
 
     private static bool IsSlotValidFrom1Skip<T>(FrameCheckDetails<T> ctx, out uint result)
         where T : IEncounterSlot4
@@ -416,9 +443,9 @@ public static class MethodJ
         return slot == enc.SlotNumber;
     }
 
-    private static bool IsLevelValid<T>(T enc, byte min, byte max, byte format, uint u16LevelRand) where T : ILevelRange
+    private static bool IsLevelValid<T>(T enc, byte min, byte max, byte format, uint u16LevelRand) where T : IEncounterSlot4
     {
-        var level = GetExpectedLevel(enc, u16LevelRand);
+        var level = enc.Type is HoneyTree ? GetHoneyTreeLevel(u16LevelRand) : GetExpectedLevel(enc, u16LevelRand);
         return IsOriginalLevelValid(min, max, format, level);
     }
 
@@ -468,31 +495,6 @@ public static class MethodJ
             seed = LCRNG.Prev(seed);
             return true;
         }
-        return false;
-    }
-
-    private static bool IsFishPossible(SlotType4 encType, ref uint seed, ref LeadRequired lead)
-    {
-        var rodRate = GetRodRate(encType);
-        var u16 = seed >> 16;
-        var roll = u16 / 656;
-        if (roll < rodRate)
-        {
-            seed = LCRNG.Prev(seed);
-            return true;
-        }
-
-        if (lead != None)
-            return false;
-
-        // Suction Cups / Sticky Hold
-        if (roll < rodRate * 2)
-        {
-            seed = LCRNG.Prev(seed);
-            lead = SuctionCups;
-            return true;
-        }
-
         return false;
     }
 

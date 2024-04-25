@@ -426,12 +426,14 @@ public partial class Main : Form
         PKME_Tabs.HideSecretValues = C_SAV.HideSecretDetails = settings.Privacy.HideSecretDetails;
         WinFormsUtil.DetectSaveFileOnFileOpen = settings.Startup.TryDetectRecentSave;
         SelectablePictureBox.FocusBorderDeflate = GenderToggle.FocusBorderDeflate = settings.Display.FocusBorderDeflate;
+        settings.SaveLanguage.Apply();
 
         var converter = settings.Converter;
         EntityConverter.AllowIncompatibleConversion = converter.AllowIncompatibleConversion;
         EntityConverter.RejuvenateHOME = converter.AllowGuessRejuvenateHOME;
         EntityConverter.VirtualConsoleSourceGen1 = converter.VirtualConsoleSourceGen1;
         EntityConverter.VirtualConsoleSourceGen2 = converter.VirtualConsoleSourceGen2;
+        EntityConverter.RetainMetDateTransfer45 = converter.RetainMetDateTransfer45;
 
         SpriteBuilder.LoadSettings(settings.Sprite);
     }
@@ -912,6 +914,9 @@ public partial class Main : Form
 
     private static bool SanityCheckSAV(ref SaveFile sav)
     {
+        if (sav.Generation <= 3)
+            SaveLanguage.TryRevise(sav);
+
         if (sav.State.Exportable && sav is SAV3 s3)
         {
             if (ModifierKeys == Keys.Control || s3.IsCorruptPokedexFF())
@@ -935,7 +940,7 @@ public partial class Main : Form
                     s.Metadata.SetExtraInfo(origin);
                 sav = s;
             }
-            else if (s3 is SAV3FRLG frlg) // IndeterminateSubVersion
+            else if (s3 is SAV3FRLG frlg && !frlg.Version.IsValidSavedVersion()) // IndeterminateSubVersion
             {
                 string fr = GameInfo.GetVersionName(GameVersion.FR);
                 string lg = GameInfo.GetVersionName(GameVersion.LG);

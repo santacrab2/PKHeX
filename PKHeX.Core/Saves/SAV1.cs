@@ -75,20 +75,25 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
         Box = 0;
         Party = GetPartyOffset(0);
 
-        // Stash boxes after the save file's end.
         int stored = SIZE_BOX_LIST;
         var capacity = BoxSlotCount;
-        for (int i = 0; i < BoxCount; i++)
+        var current = CurrentBox;
+        if (BoxesInitialized) // Current box has flushed to box storage at least once, box contents are trustworthy.
         {
-            int ofs = GetBoxRawDataOffset(i);
-            var src = Data.AsSpan(ofs, stored);
-            var dest = BoxBuffer[(i * SIZE_BOX_AS_SINGLES)..];
-            PokeList1.Unpack(src, dest, StringLength, capacity, false);
+            for (int i = 0; i < BoxCount; i++)
+            {
+                if (i == current)
+                    continue; // Use the current box data instead, loaded a little later.
+                int ofs = GetBoxRawDataOffset(i);
+                var src = Data.AsSpan(ofs, stored);
+                var dest = BoxBuffer[(i * SIZE_BOX_AS_SINGLES)..];
+                PokeList1.Unpack(src, dest, StringLength, capacity, false);
+            }
         }
-        if (CurrentBox < BoxCount) // Load Current Box
+        if (current < BoxCount) // Load Current Box
         {
             var src = Data.AsSpan(Offsets.CurrentBox, stored);
-            var dest = BoxBuffer[(CurrentBox * SIZE_BOX_AS_SINGLES)..];
+            var dest = BoxBuffer[(current * SIZE_BOX_AS_SINGLES)..];
             PokeList1.Unpack(src, dest, StringLength, capacity, false);
         }
 
@@ -141,13 +146,23 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
     {
         int boxListLength = SIZE_BOX_LIST;
         var boxSlotCount = BoxSlotCount;
+        bool boxInitialized = BoxesInitialized;
+        var current = CurrentBox;
+        if (!boxInitialized)
+        {
+            // Check if any box has content in it.
+            bool newContent = AnyBoxSlotSpeciesPresent(current, boxSlotCount);
+            if (newContent)
+                BoxesInitialized = boxInitialized = true;
+        }
+
         for (int i = 0; i < BoxCount; i++)
         {
             int ofs = GetBoxRawDataOffset(i);
             var dest = Data.AsSpan(ofs, boxListLength);
-            var src = BoxBuffer.Slice(i * SIZE_BOX_AS_SINGLES, SIZE_BOX_AS_SINGLES);
+            var src = GetUnpackedBoxSpan(i);
 
-            bool written = PokeList1.MergeSingles(src, dest, StringLength, boxSlotCount, false);
+            bool written = PokeList1.MergeSingles(src, dest, StringLength, boxSlotCount, false, boxInitialized);
             if (written && i == CurrentBox)
                 dest.CopyTo(Data.AsSpan(Offsets.CurrentBox));
         }
@@ -172,6 +187,32 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
 
         SetChecksums();
         return Data;
+    }
+
+    private Span<byte> GetUnpackedBoxSpan(int box)
+    {
+        var size = SIZE_BOX_AS_SINGLES;
+        return BoxBuffer.Slice(box * size, size);
+    }
+
+    private bool AnyBoxSlotSpeciesPresent(int current, int boxSlotCount)
+    {
+        bool newContent = false;
+        for (int i = 0; i < BoxCount; i++)
+        {
+            if (i == current) // Exclude current box in the check.
+                continue;
+
+            var src = GetUnpackedBoxSpan(i);
+            int count = PokeList1.CountPresent(src, boxSlotCount);
+            if (count == 0)
+                continue;
+
+            newContent = true;
+            break;
+        }
+
+        return newContent;
     }
 
     private int GetBoxRawDataOffset(int box)
@@ -446,7 +487,7 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
         set => Data[Offsets.CurrentBoxIndex] = (byte)((Data[Offsets.CurrentBoxIndex] & 0x80) | (value & 0x7F));
     }
 
-    public bool CurrentBoxChanged
+    public bool BoxesInitialized
     {
         get => (Data[Offsets.CurrentBoxIndex] & 0x80) != 0;
         set => Data[Offsets.CurrentBoxIndex] = (byte)((Data[Offsets.CurrentBoxIndex] & 0x7F) | (byte)(value ? 0x80 : 0));

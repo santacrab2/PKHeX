@@ -215,30 +215,33 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
     {
         get
         {
+            // Find the first unfilled control, indicate as invalid.
+            TabPage? invalid = GetInvalidParentTab();
+            if (invalid is null)
+                return true; // No issue.
+
             if (ModifierKeys == (Keys.Control | Keys.Shift | Keys.Alt))
                 return true; // Override
-
-            // Find the first unfilled control, indicate as invalid.
-            Control? cb = null;
-            foreach (var type in ValidatedControls)
-            {
-                cb = type.IsNotValid(Entity);
-                if (cb is not null)
-                    break;
-            }
-
-            if (cb != null)
-                Hidden_TC.SelectedTab = WinFormsUtil.FindFirstControlOfType<TabPage>(cb);
-            else if (!Stats.Valid)
-                Hidden_TC.SelectedTab = Hidden_Stats;
-            else if (WinFormsUtil.GetIndex(CB_Species) == 0 && !HaX) // can't set an empty slot...
-                Hidden_TC.SelectedTab = Hidden_Main;
-            else
-                return true;
 
             System.Media.SystemSounds.Exclamation.Play();
             return false;
         }
+    }
+
+    private TabPage? GetInvalidParentTab()
+    {
+        if (!Stats.Valid)
+            return Hidden_Stats;
+        if (WinFormsUtil.GetIndex(CB_Species) == 0 && !HaX) // can't set an empty slot...
+            return Hidden_Main;
+        foreach (var type in ValidatedControls)
+        {
+            var cb = type.IsNotValid(Entity);
+            if (cb is null)
+                continue;
+            return WinFormsUtil.FindFirstControlOfType<TabPage>(cb);
+        }
+        return null;
     }
 
     public void SetPKMFormatMode(PKM pk)
@@ -872,15 +875,7 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
             Entity.MetLocation = location;
             TB_MetLevel.Text = encounter.GetSuggestedMetLevel(Entity).ToString();
             CB_MetLocation.SelectedValue = (int)location;
-            var timeIndex = 0;
-            if (encounter.Encounter is { } enc && location is < 253 and not 0)
-            {
-                if (enc is EncounterSlot2 s2)
-                    timeIndex = s2.GetRandomTime();
-                else
-                    timeIndex = Util.Rand.Next(1, 4);
-            }
-            CB_MetTimeOfDay.SelectedIndex = timeIndex;
+            CB_MetTimeOfDay.SelectedIndex = location == 0 ? 0 : encounter.GetSuggestedMetTimeOfDay();
         }
 
         if (Entity.CurrentLevel < minLevel)
@@ -1757,16 +1752,30 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         var brush = Draw.Brushes.GetBackground(valid, current);
         var textColor = Draw.GetText(current);
 
-        DrawMoveRectangle(e, brush, text, textColor);
+        var type = MoveInfo.GetType((ushort)value, Entity.Context);
+        var moveTypeIcon = TypeSpriteUtil.GetTypeSpriteIconSmall(type);
+        DrawMoveRectangle(e, brush, text, textColor, moveTypeIcon);
     }
 
-    private static void DrawMoveRectangle(DrawItemEventArgs e, Brush brush, string text, Color textColor)
+    private static void DrawMoveRectangle(DrawItemEventArgs e, Brush backBrush, ReadOnlySpan<char> foreText, Color textColor, Bitmap? icon)
     {
-        var rec = new Rectangle(e.Bounds.X - 1, e.Bounds.Y, e.Bounds.Width + 1, e.Bounds.Height + 0); // 1px left
-        e.Graphics.FillRectangle(brush, rec);
+        var g = e.Graphics;
+        var rec = e.Bounds;
+        if (icon is not null)
+        {
+            var dim = rec.Height;
+            g.DrawImage(icon, rec with { Width = dim }); // Left side of the rectangle.
+            rec = rec with { X = rec.X + dim, Width = rec.Width - dim };
+        }
+        else
+        {
+            rec = rec with { X = rec.X + 1, Width = rec.Width - 1 }; // 1px left
+        }
+
+        g.FillRectangle(backBrush, rec);
 
         const TextFormatFlags flags = TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.ExpandTabs | TextFormatFlags.SingleLine;
-        TextRenderer.DrawText(e.Graphics, text, e.Font, rec, textColor, flags);
+        TextRenderer.DrawText(g, foreText, e.Font, rec, textColor, flags);
     }
 
     private void MeasureDropDownHeight(object? sender, MeasureItemEventArgs e) => e.ItemHeight = CB_RelearnMove1.ItemHeight;
@@ -2209,7 +2218,7 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
     private void RefreshFontWarningButton(object sender, EventArgs e) => RefreshFontWarningButton();
     private void RefreshFontWarningButton()
     {
-        if (Entity.Generation < 5)
+        if (!IsFontDocumented(Entity))
         {
             BTN_NicknameWarn.Visible = BTN_OTNameWarn.Visible = false;
             return;
@@ -2220,6 +2229,13 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         var langSav = (LanguageID)RequestSaveFile.Language;
         BTN_NicknameWarn.Visible = StringFontUtil.HasUndefinedCharacters(TB_Nickname.Text, context, langPk, langSav);
         BTN_OTNameWarn.Visible = StringFontUtil.HasUndefinedCharacters(TB_OT.Text, context, langPk, langSav);
+
+        static bool IsFontDocumented(PKM pk)
+        {
+            if (pk.Generation < 5)
+                return pk is (CK3 or XK3); // Only two that are fully documented and definitive
+            return true;
+        }
     }
 
     private void FontWarn(string name, string message, Control ctrl)

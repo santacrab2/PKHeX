@@ -228,12 +228,14 @@ public partial class Main : Form
         showChangelog = false;
 
         // Version Check
-        if (Settings.Startup.Version.Length != 0 && Settings.Startup.ShowChangelogOnUpdate) // already run on system
+        var ver = Program.CurrentVersion;
+        var startup = Settings.Startup;
+        if (startup.ShowChangelogOnUpdate && startup.Version.Length != 0) // already run on system
         {
-            bool parsed = Version.TryParse(Settings.Startup.Version, out var lastrev);
-            showChangelog = parsed && lastrev < Program.CurrentVersion;
+            bool parsed = Version.TryParse(startup.Version, out var lastrev);
+            showChangelog = parsed && lastrev < ver;
         }
-        Settings.Startup.Version = Program.CurrentVersion.ToString(); // set current version so this doesn't happen until the user updates next time
+        startup.Version = ver.ToString(); // set current version so this doesn't happen until the user updates next time
 
         // BAK Prompt
         if (!Settings.Backup.BAKPrompt)
@@ -261,6 +263,8 @@ public partial class Main : Form
 
     private void FormLoadPlugins()
     {
+        if (Plugins.Count != 0)
+            return; // already loaded
 #if !MERGED // merged should load dlls from within too, folder is no longer required
         if (!Directory.Exists(PluginPath))
             return;
@@ -745,7 +749,7 @@ public partial class Main : Form
             case MemoryCardSaveStatus.SaveGameRSBOX: memCard.SelectSaveGame(GameVersion.RSBOX); break;
 
             default:
-                WinFormsUtil.Error(!SaveUtil.IsSizeValid(memCard.Data.Length) ? MsgFileGameCubeBad : GetHintInvalidFile(memCard.Data, path), path);
+                WinFormsUtil.Error(!SAV3GCMemoryCard.IsMemoryCardSize(memCard.Data.Length) ? MsgFileGameCubeBad : GetHintInvalidFile(memCard.Data, path), path);
                 return false;
         }
         return true;

@@ -1,4 +1,4 @@
-//#define SUPPRESS
+#define SUPPRESS
 
 using System;
 using System.Collections.Generic;
@@ -252,7 +252,7 @@ public sealed class LegalityAnalysis
     private void ParsePK9()
     {
         UpdateChecks();
-        Transfer.VerifyTransferLegalityG9(this);
+        Transfer.VerifyTransferLegalityG8(this);
     }
 
     /// <summary>

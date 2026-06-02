@@ -1231,7 +1231,8 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         // Get Species dependent information
         if (FieldsLoaded)
             Entity.Species = (ushort)WinFormsUtil.GetIndex(CB_Species);
-        SpeciesIDTip.SetToolTip(CB_Species, Entity.Species.ToString("000"));
+        var entityspecies = Entity.Format > 8 && Entity.Species >= 917 ? $"{Entity.Species:000}/{SpeciesConverter.GetInternal9(Entity.Species):000}" : Entity.Species.ToString("000");
+        SpeciesIDTip.SetToolTip(CB_Species, entityspecies);
         SetAbilityList();
         SetForms();
         UpdateForm(sender, EventArgs.Empty);

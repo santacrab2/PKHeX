@@ -69,7 +69,7 @@ public abstract class GBPKML : GBPKM
             if (!IsNicknamed && Nickname == value)
                 return;
 
-            SetStringKeepTerminatorStyle(value, NicknameTrash);
+            SetStringKeepTerminatorStyle(value, NicknameTrash, MaxStringLengthNickname);
         }
     }
 
@@ -80,16 +80,16 @@ public abstract class GBPKML : GBPKM
         {
             if (value == OriginalTrainerName)
                 return;
-            SetStringKeepTerminatorStyle(value, OriginalTrainerTrash);
+            SetStringKeepTerminatorStyle(value, OriginalTrainerTrash, MaxStringLengthTrainer);
         }
     }
 
-    private void SetStringKeepTerminatorStyle(ReadOnlySpan<char> value, Span<byte> exist)
+    private void SetStringKeepTerminatorStyle(ReadOnlySpan<char> value, Span<byte> exist, int length)
     {
         // Reset the destination buffer based on the termination style of the existing string.
         bool zeroed = exist.Contains<byte>(0);
         var option = zeroed ? StringConverterOption.ClearZero : StringConverterOption.Clear50;
-        SetString(exist, value, value.Length, option);
+        SetString(exist, value, length, option);
     }
 
     public override bool EqualsStored(PKM pk)
